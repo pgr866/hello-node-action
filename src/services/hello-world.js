@@ -14,7 +14,7 @@ class HelloWordService {
      */
     greet ( nameToHello ) {
 
-        return "Hello " + nameToHello+"!";
+        return "Hello " + nameToHello+"!" ;
       
     }
   }
