@@ -1,0 +1,69 @@
+name: Docker CI/CD hello-node-action
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GOOGLE_CLOUD_PROJECT: "cnsa2026-pgr866"
+  APP_NAME: "hello-node-action"
+  REPO_NAME: "docker-repo"
+  REPO_LOCATION: "us-east1"
+  IMAGE_NAME: "us-east1-docker.pkg.dev/cnsa2026-pgr866/docker-repo/hello-node-action"
+  DNS_DEPLOY_INSTANCE: "webapps.cnsa2026-pgr866.tech"
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: pgr866/hello-node-action
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm run test-jenkins || echo "No hay tests definidos todavía"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker ${{ env.REPO_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and Push Image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.run_id }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.run_id }} ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ github.run_id }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'un-valor-para-que-no-de-error'
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -H ${{ env.DNS_DEPLOY_INSTANCE }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VM
+        run: |
+          ssh ubuntu@${{ env.DNS_DEPLOY_INSTANCE }} "
+            echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin https://${{ env.REPO_LOCATION }}-docker.pkg.dev
+            docker stop nodeapp || true
+            docker rm -fv nodeapp || true
+            docker pull ${{ env.IMAGE_NAME }}:latest
+            docker run -d -p 3000:3000 -t --name nodeapp ${{ env.IMAGE_NAME }}:latest
+          "
