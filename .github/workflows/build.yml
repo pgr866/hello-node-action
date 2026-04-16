@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ] 
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -15,34 +15,34 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: node:16-alpine
+    container: node:24-alpine
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6.0.2
 
       - name: Install dependencies
         run: npm install
 
       - name: Test
-        uses: mattallty/jest-github-action@v1.0.2
+        uses: mattallty/jest-github-action@v1.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          test-command: "npm run coverage-jenkins" 
+          test-command: "npm run coverage-jenkins"
       
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         if: success() || failure()
         with:
           name: test-results
+          path: ./coverage/test.results.xml
           path: |
             ./coverage/
 
       - name: Save Code Linting Report JSON
         run: npm run lint:json
-        continue-on-error: true 
+        continue-on-error: true
 
       - name: Annotate Code Linting Results
-        if: always()
-        uses: ataylorme/eslint-annotate-action@3.0.0
+        uses: ataylorme/eslint-annotate-action@v4
         with:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
           report-json: "./coverage/eslint-result.json"

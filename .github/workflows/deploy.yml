@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2.8.0
+        uses: shimataro/ssh-key-action@v2.8.1
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: 'un-valor-para-que-no-de-error'
@@ -18,11 +18,11 @@ jobs:
         run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy
         run: |
-          ssh ubuntu@${{ secrets.SSH_HOST }} "if [ ! -d 'nodeapp' ]; then \
-              git clone https://github.com/pgr866/nodeapp.git; \
+          ssh ubuntu@${{ secrets.SSH_HOST }} "if [ ! -d 'hello-node-app' ]; then \
+              git clone https://github.com/pgr866/hello-node-app.git; \
             else \
-              cd nodeapp && git stash && git fetch --all && git reset --hard origin/master && git pull origin master; \
+              cd hello-node-app && git stash && git fetch --all && git reset --hard origin/main && git pull origin main; \
             fi"
           ssh ubuntu@${{ secrets.SSH_HOST }} "bash -ic 'if pgrep node; then forever stopall; fi'"
-          ssh ubuntu@${{ secrets.SSH_HOST }} "bash -ic 'cd nodeapp && npm install'"
-          ssh ubuntu@${{ secrets.SSH_HOST }} "bash -ic 'cd nodeapp && forever start src/main.js'"
+          ssh ubuntu@${{ secrets.SSH_HOST }} "bash -ic 'cd hello-node-app && npm install'"
+          ssh ubuntu@${{ secrets.SSH_HOST }} "bash -ic 'cd hello-node-app && forever start src/main.js'"

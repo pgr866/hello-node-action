@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           repository: pgr866/hello-node-action
           ref: main
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.3.0
         with:
           node-version: 'lts/*'
 
@@ -35,7 +35,7 @@ jobs:
         run: npm run test-jenkins || echo "No hay tests definidos todavía"
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
@@ -50,7 +50,7 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:latest
 
       - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
+        uses: shimataro/ssh-key-action@v2.8.1
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: 'un-valor-para-que-no-de-error'
@@ -62,8 +62,8 @@ jobs:
         run: |
           ssh ubuntu@${{ env.DNS_DEPLOY_INSTANCE }} "
             echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin https://${{ env.REPO_LOCATION }}-docker.pkg.dev
-            docker stop nodeapp || true
-            docker rm -fv nodeapp || true
+            docker stop hello-node-action || true
+            docker rm -fv hello-node-action || true
             docker pull ${{ env.IMAGE_NAME }}:latest
-            docker run -d -p 3000:3000 -t --name nodeapp ${{ env.IMAGE_NAME }}:latest
+            docker run -d -p 3000:3000 -t --name hello-node-action ${{ env.IMAGE_NAME }}:latest
           "
